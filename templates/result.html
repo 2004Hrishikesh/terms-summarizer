@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary Results - Terms & Conditions Summarizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-file-contract"></i> Summary Results</h1>
+            <a href="{{ url_for('index') }}" class="back-btn">
+                <i class="fas fa-arrow-left"></i> New Summary
+            </a>
+        </header>
+
+        <!-- Summary Statistics -->
+        <div class="stats-section">
+            <div class="stat-item">
+                <i class="fas fa-file-alt"></i>
+                <div>
+                    <span class="stat-number">{{ original_word_count }}</span>
+                    <span class="stat-label">Original Words</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-compress-alt"></i>
+                <div>
+                    <span class="stat-number">{{ summary_word_count }}</span>
+                    <span class="stat-label">Summary Words</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-percentage"></i>
+                <div>
+                    <span class="stat-number">{{ compression_ratio }}%</span>
+                    <span class="stat-label">Compression</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <span class="stat-number">{{ processing_time }}s</span>
+                    <span class="stat-label">Processing Time</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Summary -->
+        <div class="result-section">
+            <div class="section-header">
+                <h2><i class="fas fa-file-text"></i> Summary</h2>
+                <div class="section-actions">
+                    <button class="action-btn" onclick="copyToClipboard('summary')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="action-btn" onclick="downloadText('summary', 'summary.txt')">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+            <div class="content-box" id="summary">
+                {{ summary }}
+            </div>
+            <div class="model-info">
+                <i class="fas fa-robot"></i> Generated using {{ model_used }} model
+            </div>
+        </div>
+
+        <!-- Key Points -->
+        {% if key_points %}
+        <div class="result-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list"></i> Key Points</h2>
+                <button class="action-btn" onclick="copyToClipboard('keyPoints')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="content-box">
+                <ul class="key-points-list" id="keyPoints">
+                    {% for point in key_points %}
+                    <li>{{ point }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Original Text (Collapsible) -->
+        <div class="result-section">
+            <div class="section-header">
+                <h2><i class="fas fa-file"></i> Original Text</h2>
+                <button class="action-btn" onclick="toggleSection('originalText')">
+                    <i class="fas fa-eye"></i> <span id="toggleText">Show</span>
+                </button>
+            </div>
+            <div class="content-box hidden" id="originalText">
+                {{ original_text }}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-section">
+            <a href="{{ url_for('index') }}" class="primary-btn">
+                <i class="fas fa-plus"></i> Summarize Another Document
+            </a>
+            <button class="secondary-btn" onclick="printResults()">
+                <i class="fas fa-print"></i> Print Results
+            </button>
+            <button class="secondary-btn" onclick="shareResults()">
+                <i class="fas fa-share"></i> Share
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Copy to clipboard functionality
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.innerText;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                showNotification('Text copied to clipboard!', 'success');
+            }, function(err) {
+                showNotification('Failed to copy text', 'error');
+            });
+        }
+
+        // Download text as file
+        function downloadText(elementId, filename) {
+            const element = document.getElementById(elementId);
+            const text = element.innerText;
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Toggle section visibility
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const toggleText = document.getElementById('toggleText');
+            
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                toggleText.textContent = 'Hide';
+            } else {
+                section.classList.add('hidden');
+                toggleText.textContent = 'Show';
+            }
+        }
+
+        // Print results
+        function printResults() {
+            window.print();
+        }
+
+        // Share results
+        function shareResults() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Terms & Conditions Summary',
+                    text: document.getElementById('summary').innerText,
+                    url: window.location.href
+                });
+            } else {
+                copyToClipboard('summary');
+                showNotification('Summary copied to clipboard for sharing!', 'success');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}"></i> ${message}`;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
