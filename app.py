@@ -5,7 +5,7 @@ import logging
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this-in-production'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-only-secret')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -55,6 +55,30 @@ def summarize_text():
             if not text_content:
                 flash('Please enter some text to summarize.', 'error')
                 return redirect(url_for('index'))
+        elif input_method == 'file':
+            uploaded = request.files.get('file')
+            if not uploaded or uploaded.filename == '':
+                flash('Please choose a file to upload.', 'error')
+                return redirect(url_for('index'))
+            if not file_handler or not file_handler.allowed_file(uploaded.filename):
+                flash('Supported file types: .txt, .pdf, .docx', 'error')
+                return redirect(url_for('index'))
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(uploaded.filename))
+            uploaded.save(filepath)
+            try:
+                text_content = file_handler.extract_text(filepath).strip()
+            finally:
+                os.remove(filepath)
+        elif input_method == 'url':
+            url = request.form.get('url_input', '').strip()
+            if not url or not file_handler:
+                flash('Please enter a URL.', 'error')
+                return redirect(url_for('index'))
+            text_content = file_handler.extract_from_url(url).strip()
+
+        if not text_content:
+            flash('Could not read any text from that input.', 'error')
+            return redirect(url_for('index'))
         
         # Preprocess text
         if text_processor:

@@ -5,3 +5,5 @@ __pycache__/
 *.pkl
 venv/
 transformers_cache/
+uploads/
+test_uploads/

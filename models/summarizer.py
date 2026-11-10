@@ -206,10 +206,3 @@ class TextSummarizer:
         except Exception as e:
             self.logger.error(f"Key point extraction error: {str(e)}")
             return []
-
-# Initialize the summarizer (downloaded automatically if not cached)
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-
-def summarize_with_local_model(text, max_length=150, min_length=40):
-    summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
-    return summary[0]['summary_text']
