@@ -7,3 +7,6 @@ venv/
 transformers_cache/
 uploads/
 test_uploads/
+summaries.db
+.pytest_cache/
+.ruff_cache/

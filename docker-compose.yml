@@ -1,0 +1,21 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - model-cache:/models
+      - data:/data
+
+  api:
+    build: .
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - model-cache:/models
+      - data:/data
+
+volumes:
+  model-cache:
+  data:

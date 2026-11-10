@@ -11,34 +11,67 @@ A Flask web app that summarizes terms-of-service and other legal text. It runs f
 - If a transformer model fails, the app falls back to LexRank.
 - The result page shows the summary, up to five key sentences, word counts, the compression ratio and the processing time.
 
-## Setup
+## Run with Docker
+
+```bash
+docker compose up --build
+```
+
+- Web app: http://localhost:5000
+- REST API: http://localhost:8000 (interactive docs at `/docs`)
+
+Models are downloaded on first use and cached in a Docker volume. Summary history is stored in SQLite in a second volume.
+
+## Run locally
 
 ```bash
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python app.py
+python app.py                   # web app on port 5000
+uvicorn api:app --port 8000     # REST API on port 8000
 ```
 
-The app runs at http://localhost:5000. The first run downloads the models (about 2 GB).
+## REST API
 
-## Tests
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Health check |
+| POST | `/api/v1/summarize` | Summarize text. Body: `{"text": "...", "model": "legal", "sentences": 3}` |
+| GET | `/api/v1/history?limit=20` | Most recent summaries |
+| GET | `/api/v1/stats` | Request count and average latency per model (SQL aggregate) |
 
 ```bash
-python -m unittest test_app.py test_summary_accuracy.py
+curl -X POST localhost:8000/api/v1/summarize -H "Content-Type: application/json" \
+     -d '{"text": "Paste the terms here ...", "model": "lexrank", "sentences": 3}'
 ```
 
-- `test_app.py` covers file uploads.
-- `test_summary_accuracy.py` compares a LexRank summary with a reference summary using TF-IDF cosine similarity.
+Requests are validated with Pydantic. Unknown models or texts under 10 words return HTTP 422.
+
+## Tests and CI
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+- **Isolation:** the tests replace the models with a fake summarizer, so they run in under a second without loading any transformer model.
+- **Coverage:** they test the web routes, file upload, the REST API, input validation and the SQLite history.
+- **CI:** GitHub Actions runs linting and tests on every push, and builds the Docker image on `main`.
 
 ## Structure
 
 ```
-app.py                   Flask routes
-models/summarizer.py     model loading, chunking, abstractive and extractive summaries, key sentences
+app.py                   Flask web app
+api.py                   FastAPI REST API
+storage.py               SQLite summary history
+models/summarizer.py     lazy model loading, chunking, abstractive and extractive summaries, key sentences
 utils/file_handler.py    text extraction from txt, pdf, docx and web pages
 utils/text_processor.py  text cleaning
 templates/, static/      front end
+tests/                   pytest suite
+Dockerfile, docker-compose.yml, .github/workflows/ci.yml
 ```
 
 The summaries are for quick reading and are not legal advice.

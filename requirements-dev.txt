@@ -1,0 +1,14 @@
+# Lightweight dependencies for tests and linting (no PyTorch / model downloads)
+Flask==2.3.3
+Werkzeug==2.3.7
+fastapi==0.110.0
+httpx==0.27.0
+sumy==0.11.0
+nltk==3.8.1
+numpy==1.26.4
+PyPDF2==3.0.1
+python-docx==0.8.11
+beautifulsoup4==4.12.2
+requests==2.31.0
+pytest==8.1.1
+ruff==0.4.4
